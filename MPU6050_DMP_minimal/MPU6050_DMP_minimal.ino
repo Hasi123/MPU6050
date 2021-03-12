@@ -13,14 +13,11 @@ void setup() {
 }
 
 void loop() {
-  short gyro[3], accel_short[3], sensors;
-  unsigned char more;
+  short gyro[3], accel[3];
   long quat[4];
-  unsigned long sensor_timestamp;
-
 
   if (bitRead(readByte(mpuAddr, MPU6050_RA_INT_STATUS), 1)) { //new DMP packet
-    //dmp_read_fifo(gyro, accel_short, quat, &sensor_timestamp, &sensors, &more); //TODO
+    mpuGetFIFO(gyro, accel, quat);
 
 #ifdef PRINT_GYRO
     Serial.print(gyro[0]); Serial.print("\t");

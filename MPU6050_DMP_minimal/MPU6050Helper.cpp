@@ -154,3 +154,30 @@ void mpuInit() {
   //writeByte(mpuAddr, MPU6050_RA_FIFO_EN, 0); //already 0
 
 }
+
+//read a FIFO packet and parse data
+//should be called after interrupt or data_ready state
+void mpuGetFIFO(short *gyro, short *accel, long *quat) {
+  //get packet
+#define FIFO_SIZE 32
+  unsigned char fifo_data[FIFO_SIZE];
+  unsigned short fifo_count = readWord(mpuAddr, MPU6050_RA_FIFO_COUNTH);
+
+  readBytes(mpuAddr, MPU6050_RA_FIFO_R_W, fifo_count, fifo_data);
+
+  //parse data
+  quat[0] = ((long)fifo_data[0] << 24) | ((long)fifo_data[1] << 16) |
+            ((long)fifo_data[2] << 8) | fifo_data[3];
+  quat[1] = ((long)fifo_data[4] << 24) | ((long)fifo_data[5] << 16) |
+            ((long)fifo_data[6] << 8) | fifo_data[7];
+  quat[2] = ((long)fifo_data[8] << 24) | ((long)fifo_data[9] << 16) |
+            ((long)fifo_data[10] << 8) | fifo_data[11];
+  quat[3] = ((long)fifo_data[12] << 24) | ((long)fifo_data[13] << 16) |
+            ((long)fifo_data[14] << 8) | fifo_data[15];
+  accel[0] = ((short)fifo_data[16] << 8) | fifo_data[17];
+  accel[1] = ((short)fifo_data[18] << 8) | fifo_data[19];
+  accel[2] = ((short)fifo_data[20] << 8) | fifo_data[21];
+  gyro[0] = ((short)fifo_data[22] << 8) | fifo_data[23];
+  gyro[1] = ((short)fifo_data[24] << 8) | fifo_data[25];
+  gyro[2] = ((short)fifo_data[26] << 8) | fifo_data[27];
+}
