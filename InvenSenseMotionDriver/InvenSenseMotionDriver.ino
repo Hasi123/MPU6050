@@ -54,10 +54,11 @@ uint16_t orientMtx = 0b10001000;
 
 #include "inv_mpu.h"
 #include "inv_mpu_dmp_motion_driver.h"
+#include "inv_dmp_uncompress.h"
 
 void setup() {
   //init serial
-  Serial.begin(38400);
+  Serial.begin(115200);
   while (!Serial); // wait for Leonardo enumeration, others continue immediately
 
   // join I2C bus (I2Cdev library doesn't do this automatically)
@@ -164,10 +165,37 @@ void setup() {
                      DMP_FEATURE_GYRO_CAL;
   dmp_enable_feature(hal.dmp_features);
   dmp_set_fifo_rate(DEFAULT_MPU_HZ);
+
+  //read back configured DMP and print
+  /*Reamrks:
+    If DMP is activated, it always changes
+    So read back with DMP still disabled
+  */
+#define READ_DMP
+#ifdef READ_DMP
+  unsigned char curRead;
+  unsigned int i = 0;
+  while (i < UNCOMPRESSED_DMP_CODE_SIZE) {
+    if (!(i % 256)) {
+      Serial.print("//bank #");
+      Serial.println(i / 256);
+    }
+    mpu_read_mem(i, 1, &curRead);
+    Serial.print("0x");
+    if (curRead < 16)
+      Serial.print(0);
+    Serial.print(curRead, HEX);
+    Serial.print(", ");
+    i++;
+    if (!(i % 16))
+      Serial.println();
+  }
+  Serial.println();
+#endif
+
+  //enable DMP
   mpu_set_dmp_state(1);
   hal.dmp_on = 1;
-
-  //TODO: read back dmp
 
   //get WhoAmI, should be 0x68 or 0x69
   uint8_t whoami;
@@ -185,9 +213,9 @@ void loop() {
 
   if (sensors) { //new packet
 
-#define PRINT_GYRO
-//#define PRINT_ACCEL
-//#define PRINT_QUAT
+    //#define PRINT_GYRO
+    //#define PRINT_ACCEL
+    //#define PRINT_QUAT
 
 #ifdef PRINT_GYRO
     Serial.print(gyro[0]); Serial.print("\t");
