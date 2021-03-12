@@ -143,7 +143,7 @@ void setup() {
   */
   if (dmp_load_motion_driver_firmware() < 0)
     Serial.println(F("DMP load failed"));
-  //dmp_set_orientation(orientMtx);
+  //dmp_set_orientation(orientMtx);  //default orientation doesn't need to be set
   //dmp_register_tap_cb(tap_cb);
   //dmp_register_android_orient_cb(android_orient_cb);
   /*
@@ -167,41 +167,43 @@ void setup() {
   mpu_set_dmp_state(1);
   hal.dmp_on = 1;
 
-  //TODO read back dmp
+  //TODO: read back dmp
 
   //get WhoAmI, should be 0x68 or 0x69
   uint8_t whoami;
   I2Cdev::readByte(0x68, 0x75, &whoami);
   Serial.print(F("WhoAmI: 0x"));
   Serial.println(whoami, HEX);
-
-
 }
 
 void loop() {
-  delay(1000/DEFAULT_MPU_HZ); //TODO: interrupt based read
   short gyro[3], accel_short[3], sensors;
   unsigned char more;
   long quat[4];
   unsigned long sensor_timestamp;
   dmp_read_fifo(gyro, accel_short, quat, &sensor_timestamp, &sensors, &more);
 
+  if (sensors) { //new packet
+
 #define PRINT_GYRO
+//#define PRINT_ACCEL
+//#define PRINT_QUAT
 
 #ifdef PRINT_GYRO
-  Serial.print(gyro[0]); Serial.print("\t");
-  Serial.print(gyro[1]); Serial.print("\t");
-  Serial.println(gyro[2]);
+    Serial.print(gyro[0]); Serial.print("\t");
+    Serial.print(gyro[1]); Serial.print("\t");
+    Serial.println(gyro[2]);
 #endif
 #ifdef PRINT_ACCEL
-  Serial.print(accel_short[0]); Serial.print("\t");
-  Serial.print(accel_short[1]); Serial.print("\t");
-  Serial.println(accel_short[2]);
+    Serial.print(accel_short[0]); Serial.print("\t");
+    Serial.print(accel_short[1]); Serial.print("\t");
+    Serial.println(accel_short[2]);
 #endif
 #ifdef PRINT_QUAT
-  Serial.print(quat[0]); Serial.print("\t");
-  Serial.print(quat[1]); Serial.print("\t");
-  Serial.print(quat[2]); Serial.print("\t");
-  Serial.println(quat[3]);
+    Serial.print(quat[0]); Serial.print("\t");
+    Serial.print(quat[1]); Serial.print("\t");
+    Serial.print(quat[2]); Serial.print("\t");
+    Serial.println(quat[3]);
 #endif
+  }
 }
