@@ -54,7 +54,7 @@ void printHex(uint8_t hexVal) {
 
 //Dump all the MPUs regs
 void mpu_dump_regs() {
-  for (uint8_t i = 0; i < 255; i++) {
+  for (uint8_t i = 0; i < 128; i++) {
     printHex(i);
     Serial.print(", ");
     printHex(readByte(mpuAddr, i));
@@ -80,6 +80,29 @@ int8_t mpu_read_mem(uint16_t mem_addr, uint16_t length, uint8_t *data) {
   if (!readBytes(mpuAddr, MPU6050_RA_MEM_R_W, length, data))
     return -1;
   return 0;
+}
+
+void read_dmp() {
+  unsigned char curRead;
+  unsigned int i = 0;
+  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b00000100); //pause DMP and reset FIFO
+  while (i < UNCOMPRESSED_DMP_CODE_SIZE) {
+    if (!(i % 256)) {
+      Serial.print("//bank #");
+      Serial.println(i / 256);
+    }
+    mpu_read_mem(i, 1, &curRead);
+    Serial.print("0x");
+    if (curRead < 16)
+      Serial.print(0);
+    Serial.print(curRead, HEX);
+    Serial.print(", ");
+    i++;
+    if (!(i % 16))
+      Serial.println();
+  }
+  Serial.println();
+  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b11000000); //enable FIFO and DMP
 }
 
 //Load and verify DMP image
@@ -144,40 +167,46 @@ void mpuInit() {
   writeByte(mpuAddr, MPU6050_RA_SMPLRT_DIV, 1000 / SAMPLE_RATE - 1);  //sample rate divider
   //writeByte(mpuAddr, MPU6050_RA_INT_ENABLE, 0); //disable interrupts, already 0 by default
   writeByte(mpuAddr, MPU6050_RA_INT_PIN_CFG, 0x80); //setup interrupt pin
-  delay(50);
   load_dmp();
   //writeByte(mpuAddr, MPU6050_RA_FIFO_EN, 0); //disable FIFO, already 0 by default
   writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b00001100); //reset FIFO and DMP
   delay(50);
   writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b11000000); //enable FIFO and DMP
-  writeByte(mpuAddr, MPU6050_RA_INT_ENABLE, 0x02); //hardware DMP interrupt needed? yes in this case else set to 0
-  //writeByte(mpuAddr, MPU6050_RA_FIFO_EN, 0); //already 0
+  writeByte(mpuAddr, MPU6050_RA_INT_ENABLE, 0x02); //hardware DMP interrupt needed? yes in this case, else set to 0
 
 }
 
-//read a FIFO packet and parse data
+//read 1 FIFO packet and parse data
 //should be called after interrupt or data_ready state
-void mpuGetFIFO(short *gyro, short *accel, long *quat) {
-  //get packet
+int8_t mpuGetFIFO(short *gyroData, short *accelData, long *quatData) {
 #define FIFO_SIZE 32
   unsigned char fifo_data[FIFO_SIZE];
   unsigned short fifo_count = readWord(mpuAddr, MPU6050_RA_FIFO_COUNTH);
 
-  readBytes(mpuAddr, MPU6050_RA_FIFO_R_W, fifo_count, fifo_data);
+  if (fifo_count != FIFO_SIZE) { //reset FIFO if more data than 1 packet
+    writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b00000100); //reset FIFO
+    delay(50);
+    writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b11000000); //enable FIFO and DMP
+    return -1;
+  }
+  else {
+    readBytes(mpuAddr, MPU6050_RA_FIFO_R_W, fifo_count, fifo_data); //get FIFO data
 
-  //parse data
-  quat[0] = ((long)fifo_data[0] << 24) | ((long)fifo_data[1] << 16) |
-            ((long)fifo_data[2] << 8) | fifo_data[3];
-  quat[1] = ((long)fifo_data[4] << 24) | ((long)fifo_data[5] << 16) |
-            ((long)fifo_data[6] << 8) | fifo_data[7];
-  quat[2] = ((long)fifo_data[8] << 24) | ((long)fifo_data[9] << 16) |
-            ((long)fifo_data[10] << 8) | fifo_data[11];
-  quat[3] = ((long)fifo_data[12] << 24) | ((long)fifo_data[13] << 16) |
-            ((long)fifo_data[14] << 8) | fifo_data[15];
-  accel[0] = ((short)fifo_data[16] << 8) | fifo_data[17];
-  accel[1] = ((short)fifo_data[18] << 8) | fifo_data[19];
-  accel[2] = ((short)fifo_data[20] << 8) | fifo_data[21];
-  gyro[0] = ((short)fifo_data[22] << 8) | fifo_data[23];
-  gyro[1] = ((short)fifo_data[24] << 8) | fifo_data[25];
-  gyro[2] = ((short)fifo_data[26] << 8) | fifo_data[27];
+    //parse data
+    quatData[0] = ((long)fifo_data[0] << 24) | ((long)fifo_data[1] << 16) |
+                  ((long)fifo_data[2] << 8) | fifo_data[3];
+    quatData[1] = ((long)fifo_data[4] << 24) | ((long)fifo_data[5] << 16) |
+                  ((long)fifo_data[6] << 8) | fifo_data[7];
+    quatData[2] = ((long)fifo_data[8] << 24) | ((long)fifo_data[9] << 16) |
+                  ((long)fifo_data[10] << 8) | fifo_data[11];
+    quatData[3] = ((long)fifo_data[12] << 24) | ((long)fifo_data[13] << 16) |
+                  ((long)fifo_data[14] << 8) | fifo_data[15];
+    accelData[0] = ((short)fifo_data[16] << 8) | fifo_data[17];
+    accelData[1] = ((short)fifo_data[18] << 8) | fifo_data[19];
+    accelData[2] = ((short)fifo_data[20] << 8) | fifo_data[21];
+    gyroData[0] = ((short)fifo_data[22] << 8) | fifo_data[23];
+    gyroData[1] = ((short)fifo_data[24] << 8) | fifo_data[25];
+    gyroData[2] = ((short)fifo_data[26] << 8) | fifo_data[27];
+    return 0;
+  }
 }
