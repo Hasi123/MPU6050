@@ -36,9 +36,12 @@ bool writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_t *data)
   return I2Cdev::writeBytes(devAddr, regAddr, length, data);
 }
 
+//reads word "loops" times and averages the result
 int16_t readWordAveraged(uint8_t devAddr, uint8_t regAddr, uint8_t loops) {
   int32_t sum = 0;
+  readByte(mpuAddr, MPU6050_RA_INT_STATUS); //clear int status
   for (uint8_t i = 0; i < loops; i++) {
+    while (!readByte(mpuAddr, MPU6050_RA_INT_STATUS)); //wait for new reading
     sum += readWord(devAddr, regAddr);
   }
   return (int16_t)(sum / loops);
@@ -209,4 +212,8 @@ int8_t mpuGetFIFO(short *gyroData, short *accelData, long *quatData) {
     gyroData[2] = ((short)fifo_data[26] << 8) | fifo_data[27];
     return 0;
   }
+}
+
+bool mpuNewDmp(){
+  return bitRead(readByte(mpuAddr, MPU6050_RA_INT_STATUS), 1);
 }

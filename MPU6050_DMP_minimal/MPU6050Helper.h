@@ -398,5 +398,6 @@ int16_t readWordAveraged(uint8_t devAddr, uint8_t regAddr, uint8_t loops);
 void read_dmp();
 void mpuInit();
 int8_t mpuGetFIFO(short *gyro, short *accel, long *quat);
+bool mpuNewDmp();
 
 #endif
