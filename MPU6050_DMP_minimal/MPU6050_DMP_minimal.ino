@@ -8,11 +8,17 @@
 short gyro[3], accel[3];
 long quat[4];
 
+//provide your calibration values here
+int16_t gyrOffs[3] = {0, 85, 9};
+int16_t accOffs[3] = {-3960, -1672, 1323};
+uint8_t fineGain[3] = {177, 221, 220};
+
 void setup() {
   //Serial.begin(57600);
   //while (!Serial); // wait for Leonardo enumeration, others continue immediately
 
-  mpuInit();
+  mpuInit(gyrOffs, accOffs, fineGain);
+  //mpuInit(); // if you don't have any calibration values
 }
 
 void loop() {
@@ -26,9 +32,9 @@ void loop() {
     Serial.println(gyro[2]);
 #endif
 #ifdef PRINT_ACCEL
-    Serial.print(accel_short[0]); Serial.print("\t");
-    Serial.print(accel_short[1]); Serial.print("\t");
-    Serial.println(accel_short[2]);
+    Serial.print(accel[0]); Serial.print("\t");
+    Serial.print(accel[1]); Serial.print("\t");
+    Serial.println(accel[2]);
 #endif
 #ifdef PRINT_QUAT
     Serial.print(quat[0]); Serial.print("\t");

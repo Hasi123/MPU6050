@@ -5,6 +5,6 @@ InvenSenseMotionDriver is just an Arduino port of the official 6.12 DMP release.
 
 dmp_compress compresses the DMP firmware image (basically if there are many 0x00 after each other, it saves a count instead of the many zeros).
 
-MPU6060_DMP_minimal ist the bare minimum with full dmp functionality. It only takes up 5508 bytes (17%) of the flash memory on a 328p.
+MPU6060_DMP_minimal is the bare minimum with full dmp functionality. It only takes up 5806 bytes (18%) of the flash memory on a 328p.
 
-MPU6050_calibrate is my attempt to calibrate the sensor.
+MPU6050_calibrate fully calibrates the sensor including gyro and accel offsets and accel gain factor!

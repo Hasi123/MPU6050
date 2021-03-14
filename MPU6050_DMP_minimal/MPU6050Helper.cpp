@@ -36,6 +36,10 @@ bool writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_t *data)
   return I2Cdev::writeBytes(devAddr, regAddr, length, data);
 }
 
+bool writeWords(uint8_t devAddr, uint8_t regAddr, uint8_t length, int16_t *data) {
+  return I2Cdev::writeWords(devAddr, regAddr, length, (uint16_t*)data);
+}
+
 //reads word "loops" times and averages the result
 int16_t readWordAveraged(uint8_t devAddr, uint8_t regAddr, uint8_t loops) {
   int32_t sum = 0;
@@ -63,6 +67,13 @@ void mpu_dump_regs() {
     printHex(readByte(mpuAddr, i));
     Serial.println();
   }
+}
+
+//load calibration data into the registers
+void load_calibration(int16_t *gyro_offs, int16_t *accel_offs, uint8_t *fine_gain) {
+  writeBytes(mpuAddr, MPU6050_RA_X_FINE_GAIN, 3, fine_gain);
+  writeWords(mpuAddr, MPU6050_RA_XA_OFFS_H, 3, accel_offs);
+  writeWords(mpuAddr, MPU6050_RA_XG_OFFS_USRH, 3, gyro_offs);
 }
 
 //Write to the DMP memory
@@ -95,10 +106,7 @@ void read_dmp() {
       Serial.println(i / 256);
     }
     mpu_read_mem(i, 1, &curRead);
-    Serial.print("0x");
-    if (curRead < 16)
-      Serial.print(0);
-    Serial.print(curRead, HEX);
+    printHex(curRead);
     Serial.print(", ");
     i++;
     if (!(i % 16))
@@ -147,7 +155,7 @@ int8_t load_dmp() {  //using compressed DMP firmware
 }
 
 //Init the sensor and load dmp
-void mpuInit() {
+void mpuInit(int16_t *gyro_offs, int16_t *accel_offs, uint8_t *fine_gain) {
   //join I2C bus (I2Cdev library doesn't do this automatically)
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
   Wire.begin();
@@ -169,7 +177,9 @@ void mpuInit() {
 #define SAMPLE_RATE 200 //has to be double as DMP rate
   writeByte(mpuAddr, MPU6050_RA_SMPLRT_DIV, 1000 / SAMPLE_RATE - 1);  //sample rate divider
   //writeByte(mpuAddr, MPU6050_RA_INT_ENABLE, 0); //disable interrupts, already 0 by default
-  writeByte(mpuAddr, MPU6050_RA_INT_PIN_CFG, 0x80); //setup interrupt pin
+  writeByte(mpuAddr, MPU6050_RA_INT_PIN_CFG, 0b10100000); //setup interrupt pin
+  if (gyro_offs && accel_offs && fine_gain)
+    load_calibration(gyro_offs, accel_offs, fine_gain);
   load_dmp();
   //writeByte(mpuAddr, MPU6050_RA_FIFO_EN, 0); //disable FIFO, already 0 by default
   writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b00001100); //reset FIFO and DMP
@@ -214,6 +224,6 @@ int8_t mpuGetFIFO(short *gyroData, short *accelData, long *quatData) {
   }
 }
 
-bool mpuNewDmp(){
+bool mpuNewDmp() {
   return bitRead(readByte(mpuAddr, MPU6050_RA_INT_STATUS), 1);
 }

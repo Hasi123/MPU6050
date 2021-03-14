@@ -396,7 +396,7 @@ bool writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_t *data)
 int16_t readWordAveraged(uint8_t devAddr, uint8_t regAddr, uint8_t loops);
 
 void read_dmp();
-void mpuInit();
+void mpuInit(int16_t *gyro_offs = 0, int16_t *accel_offs = 0, uint8_t *fine_gain = 0);
 int8_t mpuGetFIFO(short *gyro, short *accel, long *quat);
 bool mpuNewDmp();
 
