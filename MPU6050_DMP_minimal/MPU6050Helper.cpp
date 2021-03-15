@@ -227,3 +227,61 @@ int8_t mpuGetFIFO(short *gyroData, short *accelData, long *quatData) {
 bool mpuNewDmp() {
   return bitRead(readByte(mpuAddr, MPU6050_RA_INT_STATUS), 1);
 }
+
+/* compute vertical vector and vertical accel from IMU data */
+double getVertaccel(int16_t *imuAccel, int32_t *imuQuat) {
+
+  /*---------------------------------------*/
+  /*   vertical acceleration computation   */
+  /*---------------------------------------*/
+  /* quat scale */
+#define LIGHT_INVENSENSE_QUAT_SCALE_SHIFT 30
+#define LIGHT_INVENSENSE_QUAT_SCALE ((double)(1LL << LIGHT_INVENSENSE_QUAT_SCALE_SHIFT))
+
+/* accel scale */
+#if LIGHT_INVENSENSE_ACCEL_FSR == INV_FSR_2G
+#define LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT 14
+#define LIGHT_INVENSENSE_ACCEL_SCALE ((double)(1LL << LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT))
+#elif LIGHT_INVENSENSE_ACCEL_FSR == INV_FSR_4G
+#define LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT 13
+#define LIGHT_INVENSENSE_ACCEL_SCALE ((double)(1LL << LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT))
+#elif LIGHT_INVENSENSE_ACCEL_FSR == INV_FSR_8G
+#define LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT 12
+#define LIGHT_INVENSENSE_ACCEL_SCALE ((double)(1LL << LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT))
+#elif LIGHT_INVENSENSE_ACCEL_FSR == INV_FSR_16G
+#define LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT 11
+#define LIGHT_INVENSENSE_ACCEL_SCALE ((double)(1LL << LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT))
+#endif
+
+  /***************************/
+  /* normalize and calibrate */
+  /***************************/
+  double vertAccel;
+  double accel[3], quat[4], vertVector[3];
+
+  for(int i = 0; i<3; i++) {
+    accel[i] = ((double)calibratedAccel)/LIGHT_INVENSENSE_ACCEL_SCALE;
+  }
+
+  for(int i = 0; i<4; i++)
+    quat[i] = ((double)imuQuat[i])/LIGHT_INVENSENSE_QUAT_SCALE;
+  
+  
+  /******************************/
+  /* real and vert acceleration */
+  /******************************/
+  
+  /* compute vertical direction from quaternions */
+  vertVector[0] = 2*(quat[1]*quat[3]-quat[0]*quat[2]);
+  vertVector[1] = 2*(quat[2]*quat[3]+quat[0]*quat[1]);
+  vertVector[2] = 2*(quat[0]*quat[0]+quat[3]*quat[3])-1;
+  
+  /* compute real acceleration (without gravity) */
+  double ra[3];
+  for(int i = 0; i<3; i++) 
+    ra[i] = accel[i] - vertVector[i];
+  
+  /* compute vertical acceleration */
+  vertAccel = (vertVector[0]*ra[0] + vertVector[1]*ra[1] + vertVector[2]*ra[2]) * VERTACCEL_G_TO_MS;
+  return vertAccel;
+}
