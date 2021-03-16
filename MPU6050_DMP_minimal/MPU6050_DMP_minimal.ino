@@ -10,7 +10,7 @@ long quat[4];
 
 //provide your calibration values here
 int16_t gyrOffs[3] = {0, 85, 9};
-int16_t accOffs[3] = {-3960, -1672, 1323};
+int16_t accOffs[3] = { -3960, -1672, 1323};
 uint8_t fineGain[3] = {177, 221, 220};
 
 void setup() {
@@ -25,6 +25,8 @@ void loop() {
 
   if (mpuNewDmp()) { //new DMP packet
     mpuGetFIFO(gyro, accel, quat);
+
+    //Serial.println(getVertaccel(accel, quat)); //print vertical acceleration independent of orientation
 
 #ifdef PRINT_GYRO
     Serial.print(gyro[0]); Serial.print("\t");

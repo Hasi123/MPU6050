@@ -59,7 +59,7 @@ void printHex(uint8_t hexVal) {
   Serial.print(hexVal, HEX);
 }
 
-//Dump all the MPUs regs
+//Dump all MPU regs
 void mpu_dump_regs() {
   for (uint8_t i = 0; i < 128; i++) {
     printHex(i);
@@ -96,6 +96,7 @@ int8_t mpu_read_mem(uint16_t mem_addr, uint16_t length, uint8_t *data) {
   return 0;
 }
 
+//dumps the dmp memory onto serial
 void read_dmp() {
   unsigned char curRead;
   unsigned int i = 0;
@@ -172,7 +173,7 @@ void mpuInit(int16_t *gyro_offs, int16_t *accel_offs, uint8_t *fine_gain) {
 #endif
   writeByte(mpuAddr, MPU6050_RA_PWR_MGMT_1, MPU6050_CLOCK_PLL_XGYRO); //wake up and set clock to gyro X (recomended by datasheet)
   writeByte(mpuAddr, MPU6050_RA_GYRO_CONFIG, MPU6050_GYRO_FS_2000 << 3); //Gyro range
-  writeByte(mpuAddr, MPU6050_RA_ACCEL_CONFIG, MPU6050_ACCEL_FS_2 << 3); //Accel range
+  writeByte(mpuAddr, MPU6050_RA_ACCEL_CONFIG, MPU6050_ACCEL_FS << 3); //Accel range
   writeByte(mpuAddr, MPU6050_RA_CONFIG, MPU6050_DLPF_BW_42); //DLPF
 #define SAMPLE_RATE 200 //has to be double as DMP rate
   writeByte(mpuAddr, MPU6050_RA_SMPLRT_DIV, 1000 / SAMPLE_RATE - 1);  //sample rate divider
@@ -231,57 +232,52 @@ bool mpuNewDmp() {
 /* compute vertical vector and vertical accel from IMU data */
 double getVertaccel(int16_t *imuAccel, int32_t *imuQuat) {
 
-  /*---------------------------------------*/
-  /*   vertical acceleration computation   */
-  /*---------------------------------------*/
+  /* G to ms convertion */
+#define VERTACCEL_G_TO_MS 9.80665
+
   /* quat scale */
 #define LIGHT_INVENSENSE_QUAT_SCALE_SHIFT 30
 #define LIGHT_INVENSENSE_QUAT_SCALE ((double)(1LL << LIGHT_INVENSENSE_QUAT_SCALE_SHIFT))
 
-/* accel scale */
-#if LIGHT_INVENSENSE_ACCEL_FSR == INV_FSR_2G
+  /* accel scale */
+#if MPU6050_ACCEL_FS == MPU6050_ACCEL_FS_2
 #define LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT 14
-#define LIGHT_INVENSENSE_ACCEL_SCALE ((double)(1LL << LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT))
-#elif LIGHT_INVENSENSE_ACCEL_FSR == INV_FSR_4G
+#elif MPU6050_ACCEL_FS == MPU6050_ACCEL_FS_4
 #define LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT 13
-#define LIGHT_INVENSENSE_ACCEL_SCALE ((double)(1LL << LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT))
-#elif LIGHT_INVENSENSE_ACCEL_FSR == INV_FSR_8G
+#elif MPU6050_ACCEL_FS == MPU6050_ACCEL_FS_8
 #define LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT 12
-#define LIGHT_INVENSENSE_ACCEL_SCALE ((double)(1LL << LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT))
-#elif LIGHT_INVENSENSE_ACCEL_FSR == INV_FSR_16G
+#elif MPU6050_ACCEL_FS == MPU6050_ACCEL_FS_16
 #define LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT 11
-#define LIGHT_INVENSENSE_ACCEL_SCALE ((double)(1LL << LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT))
 #endif
+#define LIGHT_INVENSENSE_ACCEL_SCALE ((double)(1LL << LIGHT_INVENSENSE_ACCEL_SCALE_SHIFT))
 
   /***************************/
   /* normalize and calibrate */
   /***************************/
-  double vertAccel;
   double accel[3], quat[4], vertVector[3];
 
-  for(int i = 0; i<3; i++) {
-    accel[i] = ((double)calibratedAccel)/LIGHT_INVENSENSE_ACCEL_SCALE;
-  }
+  for (uint8_t i = 0; i < 3; i++)
+    accel[i] = ((double)imuAccel[i]) / LIGHT_INVENSENSE_ACCEL_SCALE;
 
-  for(int i = 0; i<4; i++)
-    quat[i] = ((double)imuQuat[i])/LIGHT_INVENSENSE_QUAT_SCALE;
-  
-  
+  for (uint8_t i = 0; i < 4; i++)
+    quat[i] = ((double)imuQuat[i]) / LIGHT_INVENSENSE_QUAT_SCALE;
+
+
   /******************************/
   /* real and vert acceleration */
   /******************************/
-  
+
   /* compute vertical direction from quaternions */
-  vertVector[0] = 2*(quat[1]*quat[3]-quat[0]*quat[2]);
-  vertVector[1] = 2*(quat[2]*quat[3]+quat[0]*quat[1]);
-  vertVector[2] = 2*(quat[0]*quat[0]+quat[3]*quat[3])-1;
-  
+  vertVector[0] = 2 * (quat[1] * quat[3] - quat[0] * quat[2]);
+  vertVector[1] = 2 * (quat[2] * quat[3] + quat[0] * quat[1]);
+  vertVector[2] = 2 * (quat[0] * quat[0] + quat[3] * quat[3]) - 1;
+
   /* compute real acceleration (without gravity) */
   double ra[3];
-  for(int i = 0; i<3; i++) 
+  for (uint8_t i = 0; i < 3; i++)
     ra[i] = accel[i] - vertVector[i];
-  
+
   /* compute vertical acceleration */
-  vertAccel = (vertVector[0]*ra[0] + vertVector[1]*ra[1] + vertVector[2]*ra[2]) * VERTACCEL_G_TO_MS;
+  double vertAccel = (vertVector[0] * ra[0] + vertVector[1] * ra[1] + vertVector[2] * ra[2]) * VERTACCEL_G_TO_MS;
   return vertAccel;
 }

@@ -383,6 +383,7 @@
 #define MPU6050_DMP_START_ADDRESS       0x0400
 
 const uint8_t mpuAddr = MPU6050_DEFAULT_ADDRESS;
+#define MPU6050_ACCEL_FS MPU6050_ACCEL_FS_2  //define accel range here
 
 //I2C wrapper functions
 uint8_t readByte(uint8_t devAddr, uint8_t regAddr);
@@ -399,5 +400,6 @@ void read_dmp();
 void mpuInit(int16_t *gyro_offs = 0, int16_t *accel_offs = 0, uint8_t *fine_gain = 0);
 int8_t mpuGetFIFO(short *gyro, short *accel, long *quat);
 bool mpuNewDmp();
+double getVertaccel(int16_t *imuAccel, int32_t *imuQuat);
 
 #endif
