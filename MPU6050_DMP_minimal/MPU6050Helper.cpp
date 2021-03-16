@@ -100,7 +100,7 @@ int8_t mpu_read_mem(uint16_t mem_addr, uint16_t length, uint8_t *data) {
 void read_dmp() {
   unsigned char curRead;
   unsigned int i = 0;
-  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b00000100); //pause DMP and reset FIFO
+  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, bit(MPU6050_USERCTRL_FIFO_RESET_BIT)); //pause DMP and reset FIFO
   while (i < UNCOMPRESSED_DMP_CODE_SIZE) {
     if (!(i % 256)) {
       Serial.print("//bank #");
@@ -114,7 +114,7 @@ void read_dmp() {
       Serial.println();
   }
   Serial.println();
-  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b11000000); //enable FIFO and DMP
+  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, bit(MPU6050_USERCTRL_DMP_EN_BIT) || bit(MPU6050_USERCTRL_FIFO_EN_BIT)); //enable FIFO and DMP
 }
 
 //Load and verify DMP image
@@ -168,7 +168,7 @@ void mpuInit(int16_t *gyro_offs, int16_t *accel_offs, uint8_t *fine_gain) {
   //redundant writes are deleted
 #define RESET_MPU //regs get reset on power cycle, so not really needed
 #ifdef RESET_MPU
-  writeByte(mpuAddr, MPU6050_RA_PWR_MGMT_1, 0b10000000); //reset
+  writeByte(mpuAddr, MPU6050_RA_PWR_MGMT_1, bit(MPU6050_PWR1_DEVICE_RESET_BIT)); //reset
   delay(100);
 #endif
   writeByte(mpuAddr, MPU6050_RA_PWR_MGMT_1, MPU6050_CLOCK_PLL_XGYRO); //wake up and set clock to gyro X (recomended by datasheet)
@@ -178,15 +178,15 @@ void mpuInit(int16_t *gyro_offs, int16_t *accel_offs, uint8_t *fine_gain) {
 #define SAMPLE_RATE 200 //has to be double as DMP rate
   writeByte(mpuAddr, MPU6050_RA_SMPLRT_DIV, 1000 / SAMPLE_RATE - 1);  //sample rate divider
   //writeByte(mpuAddr, MPU6050_RA_INT_ENABLE, 0); //disable interrupts, already 0 by default
-  writeByte(mpuAddr, MPU6050_RA_INT_PIN_CFG, 0b10100000); //setup interrupt pin
+  writeByte(mpuAddr, MPU6050_RA_INT_PIN_CFG, bit(MPU6050_INTCFG_INT_LEVEL_BIT) || bit(MPU6050_INTCFG_LATCH_INT_EN_BIT)); //setup interrupt pin
   if (gyro_offs && accel_offs && fine_gain)
     load_calibration(gyro_offs, accel_offs, fine_gain);
   load_dmp();
   //writeByte(mpuAddr, MPU6050_RA_FIFO_EN, 0); //disable FIFO, already 0 by default
-  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b00001100); //reset FIFO and DMP
+  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, bit(MPU6050_USERCTRL_DMP_RESET_BIT) || bit(MPU6050_USERCTRL_FIFO_RESET_BIT)); //reset FIFO and DMP
   delay(50);
-  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b11000000); //enable FIFO and DMP
-  writeByte(mpuAddr, MPU6050_RA_INT_ENABLE, 0x02); //hardware DMP interrupt needed? yes in this case, else set to 0
+  writeByte(mpuAddr, MPU6050_RA_USER_CTRL, bit(MPU6050_USERCTRL_DMP_EN_BIT) || bit(MPU6050_USERCTRL_FIFO_EN_BIT)); //enable FIFO and DMP
+  writeByte(mpuAddr, MPU6050_RA_INT_ENABLE, bit(MPU6050_INTERRUPT_DMP_INT_BIT)); //hardware DMP interrupt needed? yes in this case, else set to 0
 
 }
 
@@ -198,9 +198,9 @@ int8_t mpuGetFIFO(short *gyroData, short *accelData, long *quatData) {
   unsigned short fifo_count = readWord(mpuAddr, MPU6050_RA_FIFO_COUNTH);
 
   if (fifo_count != FIFO_SIZE) { //reset FIFO if more data than 1 packet
-    writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b00000100); //reset FIFO
+    writeByte(mpuAddr, MPU6050_RA_USER_CTRL, bit(MPU6050_USERCTRL_FIFO_RESET_BIT)); //reset FIFO
     delay(50);
-    writeByte(mpuAddr, MPU6050_RA_USER_CTRL, 0b11000000); //enable FIFO and DMP
+    writeByte(mpuAddr, MPU6050_RA_USER_CTRL, bit(MPU6050_USERCTRL_DMP_EN_BIT) || bit(MPU6050_USERCTRL_FIFO_EN_BIT)); //enable FIFO and DMP
     return -1;
   }
   else {
