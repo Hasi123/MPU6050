@@ -17,13 +17,23 @@ void setup() {
   //Serial.begin(57600);
   //while (!Serial); // wait for Leonardo enumeration, others continue immediately
 
+#ifdef MPU6050_INTERRUPT_PIN
+  attachInterrupt(digitalPinToInterrupt(MPU6050_INTERRUPT_PIN), mpuInterrupt, RISING);
+#endif
+
   mpuInit(gyrOffs, accOffs, fineGain);
   //mpuInit(); // if you don't have any calibration values
 }
 
 void loop() {
 
-  if (mpuNewDmp()) { //new DMP packet
+  //new DMP packet ready
+#ifdef MPU6050_INTERRUPT_PIN
+  if (newDMP) { //hardware interrupt triggered
+    newDMP = 0;
+#else
+  if (mpuNewDmp()) { // read interrupt status register
+#endif
     mpuGetFIFO(gyro, accel, quat);
 
     //Serial.println(getVertaccel(accel, quat)); //print vertical acceleration independent of orientation
@@ -46,3 +56,10 @@ void loop() {
 #endif
   }
 }
+
+//ISR must be defined here
+#ifdef MPU6050_INTERRUPT_PIN
+void mpuInterrupt() {
+  newDMP = 1;
+}
+#endif
