@@ -42,7 +42,7 @@ struct hal_s hal = {0};
    ZXY  001_000_010
    ZYX  000_001_010
 */
-uint16_t orientMtx = 0b10001000;
+unsigned short orientMtx = 0b10001000;
 
 
 #include "I2Cdev.h"
@@ -198,7 +198,7 @@ void setup() {
   hal.dmp_on = 1;
 
   //get WhoAmI, should be 0x68 or 0x69
-  uint8_t whoami;
+  unsigned char whoami;
   I2Cdev::readByte(0x68, 0x75, &whoami);
   Serial.print(F("WhoAmI: 0x"));
   Serial.println(whoami, HEX);

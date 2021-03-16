@@ -382,7 +382,7 @@
 #define MPU6050_DMP_MEMORY_CHUNK_SIZE   16
 #define MPU6050_DMP_START_ADDRESS       0x0400
 
-const uint8_t mpuAddr = MPU6050_DEFAULT_ADDRESS;
+const unsigned char mpuAddr = MPU6050_DEFAULT_ADDRESS;
 
 /* config settings here */
 #define MPU6050_ACCEL_FS MPU6050_ACCEL_FS_2  //define accel range here
@@ -394,21 +394,21 @@ static bool newDMP = 0;
 #endif
 
 //I2C wrapper functions
-uint8_t readByte(uint8_t devAddr, uint8_t regAddr);
-bool writeByte(uint8_t devAddr, uint8_t regAddr, uint8_t buff);
-int16_t readWord(uint8_t devAddr, uint8_t regAddr);
-bool writeWord(uint8_t devAddr, uint8_t regAddr, int16_t buff);
-int8_t readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_t *data);
-bool writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_t *data);
+unsigned char readByte(unsigned char devAddr, unsigned char regAddr);
+bool writeByte(unsigned char devAddr, unsigned char regAddr, unsigned char buff);
+short readWord(unsigned char devAddr, unsigned char regAddr);
+bool writeWord(unsigned char devAddr, unsigned char regAddr, short buff);
+char readBytes(unsigned char devAddr, unsigned char regAddr, unsigned char length, unsigned char *data);
+bool writeBytes(unsigned char devAddr, unsigned char regAddr, unsigned char length, unsigned char *data);
 
 //reads word "loops" times and averages the result
-int16_t readWordAveraged(uint8_t devAddr, uint8_t regAddr, uint16_t loops);
+short readWordAveraged(unsigned char devAddr, unsigned char regAddr, unsigned short loops);
 
 void mpu_dump_dmp();
 void mpu_dump_regs();
-void mpuInit(int16_t *gyro_offs = 0, int16_t *accel_offs = 0, uint8_t *fine_gain = 0);
-int8_t mpuGetFIFO(short *gyro, short *accel, long *quat);
+void mpuInit(short *gyro_offs = 0, short *accel_offs = 0, unsigned char *fine_gain = 0);
+char mpuGetFIFO(short *gyro, short *accel, long *quat);
 bool mpuNewDmp();
-double getVertaccel(int16_t *imuAccel, int32_t *imuQuat);
+double getVertaccel(short *imuAccel, long *imuQuat);
 
 #endif

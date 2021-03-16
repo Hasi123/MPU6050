@@ -177,7 +177,7 @@ static unsigned readPos = 0;
 static unsigned zeroCount = 0;
 
 /* return 1 byte */
-uint8_t inv_dmp_uncompress(void) {
+unsigned char inv_dmp_uncompress(void) {
 
   /* already finish ? */
   if ( readPos >= COMPRESSED_DMP_CODE_SIZE) {
@@ -195,7 +195,7 @@ uint8_t inv_dmp_uncompress(void) {
   }
 
   /* else decompress */
-  uint8_t c;
+  unsigned char c;
   c = pgm_read_byte(compressed_dmp_memory + readPos);
   readPos++;
 

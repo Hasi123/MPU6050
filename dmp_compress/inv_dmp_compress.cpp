@@ -447,7 +447,7 @@ const unsigned char dmp_memory[DMP_CODE_SIZE] PROGMEM = {
 static unsigned lineValueCount = 0;
 static unsigned charCount = 0;
 
-void print_hex_value(uint8_t value) {
+void print_hex_value(unsigned char value) {
 
   /* print value */
   Serial.print("0x");
@@ -476,7 +476,7 @@ void inv_dmp_compress(void) {
   while ( readPos < DMP_CODE_SIZE) {
 
     /* get current char */
-    uint8_t ic;
+    unsigned char ic;
     ic = pgm_read_byte(dmp_memory + readPos);
 
     /* not counting zero */

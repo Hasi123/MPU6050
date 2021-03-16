@@ -9,9 +9,9 @@ short gyro[3], accel[3];
 long quat[4];
 
 //provide your calibration values here
-int16_t gyrOffs[3] = {0, 85, 9};
-int16_t accOffs[3] = { -3960, -1672, 1323};
-uint8_t fineGain[3] = {177, 221, 220};
+short gyrOffs[3] = {0, 85, 9};
+short accOffs[3] = { -3960, -1672, 1323};
+unsigned char fineGain[3] = {177, 221, 220};
 
 void setup() {
   //Serial.begin(57600);

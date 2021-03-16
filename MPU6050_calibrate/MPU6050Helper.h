@@ -379,59 +379,59 @@
 #define DMP_CODE_SIZE           3062
 #define DMP_START_ADDRESS       0x0400
 
-const uint8_t mpuAddr = MPU6050_DEFAULT_ADDRESS;
+const unsigned char mpuAddr = MPU6050_DEFAULT_ADDRESS;
 
 //I2C wrapper functions
-uint8_t readByte(uint8_t devAddr, uint8_t regAddr) {
-  uint8_t buff;
+unsigned char readByte(unsigned char devAddr, unsigned char regAddr) {
+  unsigned char buff;
   I2Cdev::readByte(devAddr, regAddr, &buff);
   return buff;
 }
 
-bool writeByte(uint8_t devAddr, uint8_t regAddr, uint8_t buff) {
+bool writeByte(unsigned char devAddr, unsigned char regAddr, unsigned char buff) {
   return I2Cdev::writeByte(devAddr, regAddr, buff);
 }
 
-int16_t readWord(uint8_t devAddr, uint8_t regAddr) {
+short readWord(unsigned char devAddr, unsigned char regAddr) {
   uint16_t buff;
   I2Cdev::readWord(devAddr, regAddr, &buff);
   return buff;
 }
 
-bool writeWord(uint8_t devAddr, uint8_t regAddr, int16_t buff) {
+bool writeWord(unsigned char devAddr, unsigned char regAddr, short buff) {
   return I2Cdev::writeWord(devAddr, regAddr, buff);
 }
 
 //reads word "loops" times and averages the result
-int16_t readWordAveraged(uint8_t devAddr, uint8_t regAddr, uint8_t loops) {
-  int32_t sum = 0;
+short readWordAveraged(unsigned char devAddr, unsigned char regAddr, unsigned char loops) {
+  long sum = 0;
   readByte(mpuAddr, MPU6050_RA_INT_STATUS); //clear int status
-  for (uint8_t i = 0; i < loops; i++) {
+  for (unsigned char i = 0; i < loops; i++) {
     while (!readByte(mpuAddr, MPU6050_RA_INT_STATUS)); //wait for new reading
     sum += readWord(devAddr, regAddr);
   }
-  return (int16_t)(sum / loops);
+  return (short)(sum / loops);
 }
 
 //check if mpu is not being moved
 //based on variance of gyro values
-bool isResting(uint16_t threshold = 10000) {
-  uint32_t sum[3] = {0, 0, 0};
-  uint32_t sqsum[3] = {0, 0, 0};
-  uint32_t var[3];  //variance
-  //uint32_t sd[3]; //standard deviation
-  int16_t reading;
-  const uint16_t dataPoints = 250;
+bool isResting(unsigned short threshold = 10000) {
+  unsigned long sum[3] = {0, 0, 0};
+  unsigned long sqsum[3] = {0, 0, 0};
+  unsigned long var[3];  //variance
+  //unsigned long sd[3]; //standard deviation
+  short reading;
+  const unsigned short dataPoints = 250;
   readByte(mpuAddr, MPU6050_RA_INT_STATUS); //clear int status
-  for (uint16_t i = 0; i < dataPoints; i++) {
+  for (unsigned short i = 0; i < dataPoints; i++) {
     while (!readByte(mpuAddr, MPU6050_RA_INT_STATUS)); //wait for new reading
-    for (uint8_t ii = 0; ii < 3; ii++) { //get all axis
+    for (unsigned char ii = 0; ii < 3; ii++) { //get all axis
       reading = readWord(mpuAddr, MPU6050_RA_GYRO_XOUT_H + (2 * ii));
       sum[ii] += reading;
       sqsum[ii] += reading * reading;
     }
   }
-  for (uint8_t ii = 0; ii < 3; ii++) {
+  for (unsigned char ii = 0; ii < 3; ii++) {
     var[ii] = sqsum[ii] - (sum[ii] * sum[ii] / dataPoints);
     //sd[ii] = sqrt(var[ii]);
   }

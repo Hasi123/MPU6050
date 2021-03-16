@@ -8,51 +8,51 @@
 #include "inv_dmp_uncompress.h"
 
 
-uint8_t readByte(uint8_t devAddr, uint8_t regAddr) {
-  uint8_t buff;
+unsigned char readByte(unsigned char devAddr, unsigned char regAddr) {
+  unsigned char buff;
   I2Cdev::readByte(devAddr, regAddr, &buff);
   return buff;
 }
 
-bool writeByte(uint8_t devAddr, uint8_t regAddr, uint8_t buff) {
+bool writeByte(unsigned char devAddr, unsigned char regAddr, unsigned char buff) {
   return I2Cdev::writeByte(devAddr, regAddr, buff);
 }
 
-int16_t readWord(uint8_t devAddr, uint8_t regAddr) {
+short readWord(unsigned char devAddr, unsigned char regAddr) {
   uint16_t buff;
   I2Cdev::readWord(devAddr, regAddr, &buff);
   return buff;
 }
 
-bool writeWord(uint8_t devAddr, uint8_t regAddr, int16_t buff) {
+bool writeWord(unsigned char devAddr, unsigned char regAddr, short buff) {
   return I2Cdev::writeWord(devAddr, regAddr, buff);
 }
 
-int8_t readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_t *data) {
+char readBytes(unsigned char devAddr, unsigned char regAddr, unsigned char length, unsigned char *data) {
   return I2Cdev::readBytes(devAddr, regAddr, length, data);
 }
 
-bool writeBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8_t *data) {
+bool writeBytes(unsigned char devAddr, unsigned char regAddr, unsigned char length, unsigned char *data) {
   return I2Cdev::writeBytes(devAddr, regAddr, length, data);
 }
 
-bool writeWords(uint8_t devAddr, uint8_t regAddr, uint8_t length, int16_t *data) {
+bool writeWords(unsigned char devAddr, unsigned char regAddr, unsigned char length, short *data) {
   return I2Cdev::writeWords(devAddr, regAddr, length, (uint16_t*)data);
 }
 
 //reads word "loops" times and averages the result
-int16_t readWordAveraged(uint8_t devAddr, uint8_t regAddr, uint16_t loops) {
-  int32_t sum = 0;
+short readWordAveraged(unsigned char devAddr, unsigned char regAddr, unsigned short loops) {
+  long sum = 0;
   readByte(mpuAddr, MPU6050_RA_INT_STATUS); //clear int status
-  for (uint16_t i = 0; i < loops; i++) {
+  for (unsigned short i = 0; i < loops; i++) {
     while (!bitRead(readByte(mpuAddr, MPU6050_RA_INT_STATUS), MPU6050_INTERRUPT_DATA_RDY_BIT)); //wait for new reading
     sum += readWord(devAddr, regAddr);
   }
-  return (int16_t)(sum / loops);
+  return (short)(sum / loops);
 }
 
 //Print hex number
-void printHex(uint8_t hexVal) {
+void printHex(unsigned char hexVal) {
   Serial.print("0x");
   if (hexVal < 0x10)
     Serial.print(0);
@@ -61,7 +61,7 @@ void printHex(uint8_t hexVal) {
 
 //Dump all MPU regs
 void mpu_dump_regs() {
-  for (uint8_t i = 0; i < 128; i++) {
+  for (unsigned char i = 0; i < 128; i++) {
     printHex(i);
     Serial.print(", ");
     printHex(readByte(mpuAddr, i));
@@ -70,14 +70,14 @@ void mpu_dump_regs() {
 }
 
 //load calibration data into the registers
-void load_calibration(int16_t *gyro_offs, int16_t *accel_offs, uint8_t *fine_gain) {
+void load_calibration(short *gyro_offs, short *accel_offs, unsigned char *fine_gain) {
   writeBytes(mpuAddr, MPU6050_RA_X_FINE_GAIN, 3, fine_gain);
   writeWords(mpuAddr, MPU6050_RA_XA_OFFS_H, 3, accel_offs);
   writeWords(mpuAddr, MPU6050_RA_XG_OFFS_USRH, 3, gyro_offs);
 }
 
 //Write to the DMP memory
-int8_t mpu_write_mem(uint16_t mem_addr, uint16_t length, uint8_t *data) {
+char mpu_write_mem(unsigned short mem_addr, unsigned short length, unsigned char *data) {
 
   if (!writeWord(mpuAddr, MPU6050_RA_BANK_SEL, mem_addr))
     return -1;
@@ -87,7 +87,7 @@ int8_t mpu_write_mem(uint16_t mem_addr, uint16_t length, uint8_t *data) {
 }
 
 //Read from the DMP memory
-int8_t mpu_read_mem(uint16_t mem_addr, uint16_t length, uint8_t *data) {
+char mpu_read_mem(unsigned short mem_addr, unsigned short length, unsigned char *data) {
 
   if (!writeWord(mpuAddr, MPU6050_RA_BANK_SEL, mem_addr))
     return -1;
@@ -118,13 +118,13 @@ void mpu_dump_dmp() {
 }
 
 //Load and verify DMP image
-int8_t load_dmp() {  //using compressed DMP firmware
+char load_dmp() {  //using compressed DMP firmware
   //#define VERIFY_DMP //should we verify loading the DMP?
 
-  uint16_t ii, this_write;
-  uint8_t progBuffer[MPU6050_DMP_MEMORY_CHUNK_SIZE];
+  unsigned short ii, this_write;
+  unsigned char progBuffer[MPU6050_DMP_MEMORY_CHUNK_SIZE];
 #ifdef VERIFY_DMP
-  uint8_t cur[MPU6050_DMP_MEMORY_CHUNK_SIZE];
+  unsigned char cur[MPU6050_DMP_MEMORY_CHUNK_SIZE];
 #endif
 
   /* start loading */
@@ -134,7 +134,7 @@ int8_t load_dmp() {  //using compressed DMP firmware
     this_write = min(MPU6050_DMP_MEMORY_CHUNK_SIZE, UNCOMPRESSED_DMP_CODE_SIZE - ii);
 
     /* decompress chunk */
-    for (uint16_t progIndex = 0; progIndex < this_write; progIndex++)
+    for (unsigned short progIndex = 0; progIndex < this_write; progIndex++)
       progBuffer[progIndex] = inv_dmp_uncompress();
 
     //write
@@ -156,7 +156,7 @@ int8_t load_dmp() {  //using compressed DMP firmware
 }
 
 //Init the sensor and load dmp
-void mpuInit(int16_t *gyro_offs, int16_t *accel_offs, uint8_t *fine_gain) {
+void mpuInit(short *gyro_offs, short *accel_offs, unsigned char *fine_gain) {
   //join I2C bus (I2Cdev library doesn't do this automatically)
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
   Wire.begin();
@@ -195,7 +195,7 @@ void mpuInit(int16_t *gyro_offs, int16_t *accel_offs, uint8_t *fine_gain) {
 
 //read 1 FIFO packet and parse data
 //should be called after interrupt or data_ready state
-int8_t mpuGetFIFO(short *gyroData, short *accelData, long *quatData) {
+char mpuGetFIFO(short *gyroData, short *accelData, long *quatData) {
 #define FIFO_SIZE 32
   unsigned char fifo_data[FIFO_SIZE];
   unsigned short fifo_count = readWord(mpuAddr, MPU6050_RA_FIFO_COUNTH);
@@ -233,7 +233,7 @@ bool mpuNewDmp() {
 }
 
 /* compute vertical vector and vertical accel from IMU data */
-double getVertaccel(int16_t *imuAccel, int32_t *imuQuat) {
+double getVertaccel(short *imuAccel, long *imuQuat) {
 
   /* G to ms convertion */
 #define VERTACCEL_G_TO_MS 9.80665
@@ -259,10 +259,10 @@ double getVertaccel(int16_t *imuAccel, int32_t *imuQuat) {
   /***************************/
   double accel[3], quat[4], vertVector[3];
 
-  for (uint8_t i = 0; i < 3; i++)
+  for (unsigned char i = 0; i < 3; i++)
     accel[i] = ((double)imuAccel[i]) / LIGHT_INVENSENSE_ACCEL_SCALE;
 
-  for (uint8_t i = 0; i < 4; i++)
+  for (unsigned char i = 0; i < 4; i++)
     quat[i] = ((double)imuQuat[i]) / LIGHT_INVENSENSE_QUAT_SCALE;
 
 
@@ -277,7 +277,7 @@ double getVertaccel(int16_t *imuAccel, int32_t *imuQuat) {
 
   /* compute real acceleration (without gravity) */
   double ra[3];
-  for (uint8_t i = 0; i < 3; i++)
+  for (unsigned char i = 0; i < 3; i++)
     ra[i] = accel[i] - vertVector[i];
 
   /* compute vertical acceleration */

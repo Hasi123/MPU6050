@@ -21,9 +21,9 @@
 
 void setup() {
   //variables
-  int16_t origAccOffs[3];
-  uint8_t origGain[3]; //[7:4] accel gain, [3:0] gyro gain
-  int8_t origGyrTC[3]; //[7] PWR_MODE, [6:1] XG_OFFS_TC, [0] OTP_BNK_VLD
+  short origAccOffs[3];
+  unsigned char origGain[3]; //[7:4] accel gain, [3:0] gyro gain
+  char origGyrTC[3]; //[7] PWR_MODE, [6:1] XG_OFFS_TC, [0] OTP_BNK_VLD
 
   //init serial
   Serial.begin(57600);
@@ -49,7 +49,7 @@ void setup() {
   delay(50);
 
   //get WhoAmI, should be 0x68 or 0x69
-  uint8_t whoami = readByte(mpuAddr, MPU6050_RA_WHO_AM_I);
+  unsigned char whoami = readByte(mpuAddr, MPU6050_RA_WHO_AM_I);
   Serial.print(F("WhoAmI: 0x"));
   Serial.println(whoami, HEX);
 
@@ -69,7 +69,7 @@ void setup() {
   //...gyro offsets not needed, since 0
 
   Serial.println(F("Original biases:"));
-  for (uint8_t i = 0; i < 3; i++) {
+  for (unsigned char i = 0; i < 3; i++) {
     Serial.print(origAccOffs[i]); Serial.print("\t");
     Serial.print(origGain[i]); Serial.print("\t");
     Serial.println(origGyrTC[i]);
@@ -83,8 +83,8 @@ void setup() {
   Serial.println(F("Calibrating gyro, don´t move!"));
   delay(500); //gyro needs some time to stabilize
   while (!isResting(5000)); //wait for resting IMU
-  const uint8_t loops = 200;
-  int16_t newGyrOffs[3] = {0, 0, 0};
+  const unsigned char loops = 200;
+  short newGyrOffs[3] = {0, 0, 0};
 
   newGyrOffs[0] = -readWordAveraged(mpuAddr, MPU6050_RA_GYRO_XOUT_H, loops);
   newGyrOffs[1] = -readWordAveraged(mpuAddr, MPU6050_RA_GYRO_YOUT_H, loops);
@@ -113,17 +113,17 @@ void setup() {
   delay(50); //to apply offset values
 
   //if not moving get averaged (max) data of active axis (TODO maybe: if new data save the higher value, or better var?)
-  int16_t accelMax[6];
-  int16_t accelData[3];
-  uint8_t calibState = 0;
-  uint8_t accIndex;
+  short accelMax[6];
+  short accelData[3];
+  unsigned char calibState = 0;
+  unsigned char accIndex;
   while (true) {
     if (isResting()) {
       accelData[0] = readWordAveraged(mpuAddr, MPU6050_RA_ACCEL_XOUT_H, 50);
       accelData[1] = readWordAveraged(mpuAddr, MPU6050_RA_ACCEL_YOUT_H, 50);
       accelData[2] = readWordAveraged(mpuAddr, MPU6050_RA_ACCEL_ZOUT_H, 50);
 
-      for (uint8_t i = 0; i < 3; i++) {
+      for (unsigned char i = 0; i < 3; i++) {
         accIndex = i * 2;
         if (!bitRead(calibState, accIndex) && accelData[i] > 1500) { //not set and positive
           accelMax[accIndex] = accelData[i];
@@ -143,24 +143,24 @@ void setup() {
 
     //if all axes have data point -> calculate values -> write to registers and print
     if (calibState == 0b111111) {
-      int16_t newAccOffs[3];
-      int8_t newAccScal[3];
+      short newAccOffs[3];
+      char newAccScal[3];
 
       Serial.println(F("Calculating..."));
       Serial.println(F("Readings: "));
-      for (uint8_t i = 0; i < 6; i++) {
+      for (unsigned char i = 0; i < 6; i++) {
         Serial.print(accelMax[i]);
         Serial.print("\t");
       }
       Serial.println();
 
-
-      for (uint8_t i = 0; i < 3; i++) {
+      Serial.print(F("newOffs: "));
+      for (unsigned char i = 0; i < 3; i++) {
         //Offsets
         newAccOffs[i] = (accelMax[i * 2] + accelMax[i * 2 + 1]) / 2;
 
         //Scaling
-        int16_t diff = 2048 - (accelMax[i * 2] - newAccOffs[i]); //need to calculate offset compansated values
+        short diff = 2048 - (accelMax[i * 2] - newAccOffs[i]); //need to calculate offset compansated values
         if (diff >= 0) //round positive values
           newAccScal[i] = (diff + 14) / 29;
         else //round negative values
@@ -169,9 +169,10 @@ void setup() {
         //final offstes
         newAccOffs[i] = origAccOffs[i] - newAccOffs[i];
 
-        Serial.print(F("newOffs: ")); Serial.print(newAccOffs[i]); Serial.print("\t");
-        Serial.print(F("newScal: ")); Serial.println(newAccScal[i]);
+        Serial.print(newAccOffs[i]); Serial.print("\t");
       }
+      Serial.println();
+
       //write values to registers
       writeWord(mpuAddr, MPU6050_RA_XA_OFFS_H, newAccOffs[0]);
       writeWord(mpuAddr, MPU6050_RA_YA_OFFS_H, newAccOffs[1]);
@@ -180,6 +181,11 @@ void setup() {
       I2Cdev::writeBits(mpuAddr, MPU6050_RA_X_FINE_GAIN, 7, 4, newAccScal[0]);
       I2Cdev::writeBits(mpuAddr, MPU6050_RA_Y_FINE_GAIN, 7, 4, newAccScal[1]);
       I2Cdev::writeBits(mpuAddr, MPU6050_RA_Z_FINE_GAIN, 7, 4, newAccScal[2]);
+
+      Serial.print(F("newScal: "));
+      Serial.print(readByte(mpuAddr, MPU6050_RA_X_FINE_GAIN)); Serial.print("\t");
+      Serial.print(readByte(mpuAddr, MPU6050_RA_Y_FINE_GAIN)); Serial.print("\t");
+      Serial.println(readByte(mpuAddr, MPU6050_RA_Z_FINE_GAIN));
 
       delay(50); //to apply offsets
       Serial.println(F("Accel calib done"));
@@ -191,7 +197,7 @@ void setup() {
 
   //relation between Accel reading and AccGain
   /*
-    for (int8_t i = -8; i < 8; i++) {
+    for (char i = -8; i < 8; i++) {
       I2Cdev::writeBits(mpuAddr, MPU6050_RA_Z_FINE_GAIN, 7, 4, i);
       delay(50);
       Serial.print(i); Serial.print("\t");

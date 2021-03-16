@@ -7,7 +7,7 @@
 #include <Arduino.h>
 
 /* return 1 byte */
-uint8_t inv_dmp_uncompress(void);
+unsigned char inv_dmp_uncompress(void);
 
 /* restart */
 void inv_dmp_uncompress_reset(void);
