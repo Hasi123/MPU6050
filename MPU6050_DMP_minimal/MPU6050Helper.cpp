@@ -41,11 +41,11 @@ bool writeWords(uint8_t devAddr, uint8_t regAddr, uint8_t length, int16_t *data)
 }
 
 //reads word "loops" times and averages the result
-int16_t readWordAveraged(uint8_t devAddr, uint8_t regAddr, uint8_t loops) {
+int16_t readWordAveraged(uint8_t devAddr, uint8_t regAddr, uint16_t loops) {
   int32_t sum = 0;
   readByte(mpuAddr, MPU6050_RA_INT_STATUS); //clear int status
-  for (uint8_t i = 0; i < loops; i++) {
-    while (!readByte(mpuAddr, MPU6050_RA_INT_STATUS)); //wait for new reading
+  for (uint16_t i = 0; i < loops; i++) {
+    while (!bitRead(readByte(mpuAddr, MPU6050_RA_INT_STATUS), MPU6050_INTERRUPT_DATA_RDY_BIT)); //wait for new reading
     sum += readWord(devAddr, regAddr);
   }
   return (int16_t)(sum / loops);
@@ -226,7 +226,7 @@ int8_t mpuGetFIFO(short *gyroData, short *accelData, long *quatData) {
 }
 
 bool mpuNewDmp() {
-  return bitRead(readByte(mpuAddr, MPU6050_RA_INT_STATUS), 1);
+  return bitRead(readByte(mpuAddr, MPU6050_RA_INT_STATUS), MPU6050_INTERRUPT_DMP_INT_BIT);
 }
 
 /* compute vertical vector and vertical accel from IMU data */
