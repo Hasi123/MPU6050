@@ -185,14 +185,10 @@ void mpuInit(short *gyro_offs, short *accel_offs, unsigned char *fine_gain) {
     load_calibration(gyro_offs, accel_offs, fine_gain);
   }
   else {
-    short gyrOffs[3];
-    short accOffs[3];
-    unsigned char fineGain[3];
-    EEPROM.get(0, gyrOffs);
-    EEPROM.get(6, accOffs);
-    EEPROM.get(12, fineGain);
+    calibStruct calibData;
+    EEPROM.get(0, calibData);
     //TODO maybe: cheack if values are plausible
-    load_calibration(gyrOffs, accOffs, fineGain);
+    load_calibration(calibData.gyrOffs, calibData.accOffs, calibData.fineGain);
   }
   load_dmp();
   //writeByte(mpuAddr, MPU6050_RA_FIFO_EN, 0); //disable FIFO, already 0 by default

@@ -12,7 +12,6 @@ long quat[4];
 short gyrOffs[3] = {0, 85, 9};
 short accOffs[3] = { -3960, -1672, 1323};
 unsigned char fineGain[3] = {177, 221, 220};
-//TODO: make custom object for calibration data!!!
 
 void setup() {
   //Serial.begin(57600);

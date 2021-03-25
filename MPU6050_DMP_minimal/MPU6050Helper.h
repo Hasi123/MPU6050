@@ -393,6 +393,12 @@ const unsigned char mpuAddr = MPU6050_DEFAULT_ADDRESS;
 static bool newDMP = 0;
 #endif
 
+struct calibStruct {
+  short gyrOffs[3];
+  short accOffs[3];
+  unsigned char fineGain[3];
+};
+
 //I2C wrapper functions
 unsigned char readByte(unsigned char devAddr, unsigned char regAddr);
 bool writeByte(unsigned char devAddr, unsigned char regAddr, unsigned char buff);
