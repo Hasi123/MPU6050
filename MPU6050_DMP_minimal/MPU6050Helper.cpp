@@ -6,6 +6,7 @@
 #include "Wire.h"
 #endif
 #include "inv_dmp_uncompress.h"
+#include <EEPROM.h>
 
 
 unsigned char readByte(unsigned char devAddr, unsigned char regAddr) {
@@ -180,8 +181,19 @@ void mpuInit(short *gyro_offs, short *accel_offs, unsigned char *fine_gain) {
   //writeByte(mpuAddr, MPU6050_RA_INT_ENABLE, 0); //disable interrupts, already 0 by default
   writeByte(mpuAddr, MPU6050_RA_INT_PIN_CFG, bit(MPU6050_INTCFG_LATCH_INT_EN_BIT) | bit(MPU6050_INTCFG_INT_RD_CLEAR_BIT)); //setup interrupt pin
 #endif
-  if (gyro_offs && accel_offs && fine_gain)
+  if (gyro_offs && accel_offs && fine_gain) {
     load_calibration(gyro_offs, accel_offs, fine_gain);
+  }
+  else {
+    short gyrOffs[3];
+    short accOffs[3];
+    unsigned char fineGain[3];
+    EEPROM.get(0, gyrOffs);
+    EEPROM.get(6, accOffs);
+    EEPROM.get(12, fineGain);
+    //TODO maybe: cheack if values are plausible
+    load_calibration(gyrOffs, accOffs, fineGain);
+  }
   load_dmp();
   //writeByte(mpuAddr, MPU6050_RA_FIFO_EN, 0); //disable FIFO, already 0 by default
   writeByte(mpuAddr, MPU6050_RA_USER_CTRL, bit(MPU6050_USERCTRL_DMP_RESET_BIT) | bit(MPU6050_USERCTRL_FIFO_RESET_BIT)); //reset FIFO and DMP

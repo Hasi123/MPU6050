@@ -4,6 +4,7 @@
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
 #include "Wire.h"
 #endif
+#include <EEPROM.h>
 
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
@@ -94,6 +95,8 @@ void setup() {
   writeWord(mpuAddr, MPU6050_RA_YG_OFFS_USRH, newGyrOffs[1]);
   writeWord(mpuAddr, MPU6050_RA_ZG_OFFS_USRH, newGyrOffs[2]);
 
+  EEPROM.put(0, newGyrOffs);
+
   Serial.print(F("Gyro calib done, values: "));
   Serial.print(newGyrOffs[0]); Serial.print("\t");
   Serial.print(newGyrOffs[1]); Serial.print("\t");
@@ -178,14 +181,22 @@ void setup() {
       writeWord(mpuAddr, MPU6050_RA_YA_OFFS_H, newAccOffs[1]);
       writeWord(mpuAddr, MPU6050_RA_ZA_OFFS_H, newAccOffs[2]);
 
+      EEPROM.put(6, newAccOffs);
+
       I2Cdev::writeBits(mpuAddr, MPU6050_RA_X_FINE_GAIN, 7, 4, newAccScal[0]);
       I2Cdev::writeBits(mpuAddr, MPU6050_RA_Y_FINE_GAIN, 7, 4, newAccScal[1]);
       I2Cdev::writeBits(mpuAddr, MPU6050_RA_Z_FINE_GAIN, 7, 4, newAccScal[2]);
 
+      newAccScal[0] = readByte(mpuAddr, MPU6050_RA_X_FINE_GAIN);
+      newAccScal[1] = readByte(mpuAddr, MPU6050_RA_Y_FINE_GAIN);
+      newAccScal[2] = readByte(mpuAddr, MPU6050_RA_Z_FINE_GAIN);
+
+      EEPROM.put(12, newAccScal);
+
       Serial.print(F("newScal: "));
-      Serial.print(readByte(mpuAddr, MPU6050_RA_X_FINE_GAIN)); Serial.print("\t");
-      Serial.print(readByte(mpuAddr, MPU6050_RA_Y_FINE_GAIN)); Serial.print("\t");
-      Serial.println(readByte(mpuAddr, MPU6050_RA_Z_FINE_GAIN));
+      Serial.print(newAccScal[0]); Serial.print("\t");
+      Serial.print(newAccScal[1]); Serial.print("\t");
+      Serial.println(newAccScal[2]);
 
       delay(50); //to apply offsets
       Serial.println(F("Accel calib done"));
